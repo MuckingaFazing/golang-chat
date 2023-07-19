@@ -1,0 +1,61 @@
+package util
+
+import "math/rand"
+
+func GetRandomName() string {
+	randomIndex := rand.Intn(len(Names))
+	return Names[randomIndex]
+}
+
+var Names = []string{
+	"Agent X",
+	"Shadow",
+	"Phantom",
+	"Spyder",
+	"Viper",
+	"Silencer",
+	"Ghost",
+	"Spectre",
+	"Raven",
+	"Stealth",
+	"Invisible",
+	"Whisper",
+	"Nightshade",
+	"Steel",
+	"Cipher",
+	"Enigma",
+	"Alpha",
+	"Omega",
+	"Echo",
+	"Phoenix",
+	"Jade",
+	"Scarlet",
+	"Cobra",
+	"Jaguar",
+	"Sapphire",
+	"Ruby",
+	"Emerald",
+	"Onyx",
+	"Vortex",
+	"Titan",
+	"Nova",
+	"Orion",
+	"Blaze",
+	"Rogue",
+	"Sabre",
+	"Shadowfax",
+	"Spectra",
+	"Neptune",
+	"Mercury",
+	"Avalanche",
+	"Blitz",
+	"Thunder",
+	"Arrow",
+	"Zephyr",
+	"Zero",
+	"Cipher",
+	"Mystique",
+	"Phantom",
+	"Seraph",
+	"Solstice",
+}
