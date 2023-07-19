@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 )
 
@@ -19,12 +20,11 @@ func ClearScreen() error {
 			return fmt.Errorf("failed to clear Windows console: %w", err)
 		}
 	default:
-		// The escape sequence to clear the screen in an ANSI terminal is \033[H\033[2J
-		_, err := fmt.Fprint(os.Stdout, "clear")
-		if err != nil {
-			return fmt.Errorf("failed to clear ANSI terminal: %w", err)
+		cmd := exec.Command("clear")
+		cmd.Stdout = os.Stdout
+		if err := cmd.Run(); err != nil {
+			fmt.Println("Error clearing the screen:", err)
 		}
 	}
-
 	return nil
 }
