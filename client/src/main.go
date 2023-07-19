@@ -139,6 +139,7 @@ func handleChat() {
 	for {
 		msg, _ := reader.ReadString('\n')
 		msg = strings.TrimSuffix(msg, "\n")
+		msg = strings.TrimSuffix(msg, "\r")
 
 		if msg == "q" {
 			util.ClearScreen()
