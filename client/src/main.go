@@ -278,7 +278,7 @@ func receiveMessage(message model.ChatDto) {
 	case "chat":
 		//fmt.Print(light_blue)
 		//fmt.Println(message)
-		fmt.Println(message.From + ":" + message.Msg)
+		util.PrintFlippedText(message.From + ":" + message.Msg)
 	default:
 		// Code to execute when none of the above cases match
 		fmt.Println(red + "Unknown Message Type: " + message.Type)
