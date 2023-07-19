@@ -49,6 +49,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		// Read the message from the WebSocket connection
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
+			// Handle disconnection or error
+			handleDisconnection(conn)
 			log.Println("Failed to read message from WebSocket:", err)
 			break
 		}
@@ -62,13 +64,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 		//log.Printf("Received message: %+v", chat)
 		switchMessage(chat,messageType,conn)
-
-		// Echo the message back to the client (optional)
-		/*err = conn.WriteMessage(messageType, message)
-		if err != nil {
-			log.Println("Failed to write message to WebSocket:", err)
-			break
-		}*/
 	}
 }
 
@@ -147,6 +142,24 @@ func sendOnlineUsers(conn *websocket.Conn) {
 	}
 }
 
+func handleDisconnection(conn *websocket.Conn) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Find the client's username from the clients map
+	var username string
+	for user, c := range clients {
+		if c == conn {
+			username = user
+			break
+		}
+	}
+
+	// Remove the disconnected client from the clients map
+	delete(clients, username)
+
+	log.Println("Client disconnected:", username)
+}
 
 type ChatDto struct {
 	From      string `json:"from"`

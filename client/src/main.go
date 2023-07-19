@@ -250,8 +250,11 @@ func connectWebSocket(urlStr string) error {
 	if err != nil {
 		return err
 	}
-
-	//log.Printf("Connecting to %s", u.String())
+	
+	// Add the username as a query parameter to the URL
+	q := u.Query()
+	q.Set("username", spyname)
+	u.RawQuery = q.Encode()
 
 	conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
