@@ -32,6 +32,10 @@ var (
 	serverip         string
 	spyname          string
 	currentAgentChat string
+	// Audio settings
+	sampleRate  = float64(44100)
+	frameSize   = 1024
+	stopSignal  = make(chan struct{})
 )
 
 func main() {
