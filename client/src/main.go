@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	prompt "github.com/c-bata/go-prompt"
+	figure "github.com/common-nighthawk/go-figure"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
@@ -14,8 +16,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	figure "github.com/common-nighthawk/go-figure"
 )
 
 var (
@@ -30,6 +30,7 @@ var (
 	serverip         string
 	spyname          string
 	currentAgentChat string
+	users            []string
 )
 
 func main() {
@@ -120,16 +121,34 @@ func displayAgents() {
 
 func promptAgentName() {
 	util.PrintFlippedText("Enter the Agent name you want to chat with:")
-	reader := bufio.NewReader(os.Stdin)
-	currentAgentChat, _ = reader.ReadString('\n')
-	currentAgentChat = strings.TrimSuffix(currentAgentChat, "\n") // Trim newline character
-	currentAgentChat = strings.TrimSuffix(currentAgentChat, "\r") // Trim newline character
-	util.ClearScreen()
-	fmt.Print(green + "==========================You are chatting with " + blue)
-	fmt.Print(green + currentAgentChat)
-	fmt.Println(green + "================================")
-	fmt.Println(green + "q to quit")
-	handleChat()
+	completer := func(d prompt.Document) []prompt.Suggest {
+
+		suggestions := []prompt.Suggest{}
+		//time.Sleep(1 * time.Second)
+		for _, user := range users {
+			suggestions = append(suggestions, prompt.Suggest{Text: user})
+		}
+		return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
+	}
+
+	p := prompt.New(
+		func(input string) {
+			currentAgentChat = strings.TrimSuffix(input, "\n")            // Trim newline character
+			currentAgentChat = strings.TrimSuffix(currentAgentChat, "\r") // Trim newline character
+			util.ClearScreen()
+			fmt.Print(green + "==========================You are chatting with " + blue)
+			fmt.Print(green + currentAgentChat)
+			fmt.Println(green + "================================")
+			fmt.Println(green + "q to quit")
+			handleChat()
+		},
+		completer,
+		prompt.OptionPrefix(">>> "),
+		prompt.OptionLivePrefix(func() (string, bool) {
+			return ">>> ", true
+		}),
+	)
+	p.Run()
 }
 
 func handleChat() {
@@ -249,7 +268,6 @@ func connectWebSocket(urlStr string) error {
 	if err != nil {
 		return err
 	}
-	
 	// Add the username as a query parameter to the URL
 	q := u.Query()
 	q.Set("username", spyname)
@@ -272,6 +290,7 @@ func receiveMessage(message model.ChatDto) {
 	case "whoisonline":
 		//fmt.Print(light_blue)
 		fmt.Println(message.Users)
+		users = message.Users
 		reader := bufio.NewReader(os.Stdin)
 		num, _ := reader.ReadString('\n')
 		num = strings.TrimSuffix(num, "\n") // Trim newline character
