@@ -18,10 +18,6 @@ import (
 	figure "github.com/common-nighthawk/go-figure"
 	"github.com/gordonklaus/portaudio"
 	"github.com/gorilla/websocket"
-
-	"github.com/gorilla/websocket"
-
-	figure "github.com/common-nighthawk/go-figure"
 )
 
 var (
