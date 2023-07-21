@@ -23,6 +23,8 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 var clients = make(map[string]*websocket.Conn)
+var voiceConnections = make(map[string]*websocket.Conn) // Map to store voice chat connections
+
 var mutex sync.Mutex
 
 
@@ -88,6 +90,36 @@ func switchMessage(message ChatDto,messageType int,conn *websocket.Conn){
 		err := recipientConn.WriteMessage(messageType, marshalMessage(message))
 		if err != nil {
 			log.Println("Failed to send message to recipient:", err)
+			break
+		}
+	case "voiceRequest":
+		recipientConn, ok := clients[message.To]
+		if !ok {
+			log.Printf("Recipient not found: %s", message.To)
+			break
+		}
+
+		// Store the voice connection for both the sender and recipient
+		voiceConnections[message.From] = conn
+		voiceConnections[message.To] = recipientConn
+
+		// Send a voice chat request to the recipient
+		err := recipientConn.WriteMessage(messageType, marshalMessage(message))
+		if err != nil {
+			log.Println("Failed to send voice chat request to recipient:", err)
+			break
+		}
+	case "voiceAccept":
+		recipientConn, ok := voiceConnections[message.From]
+		if !ok {
+			log.Printf("Voice connection not found for: %s", message.From)
+			break
+		}
+
+		// Send a voice chat acceptance to the sender
+		err := recipientConn.WriteMessage(messageType, marshalMessage(message))
+		if err != nil {
+			log.Println("Failed to send voice chat acceptance to sender:", err)
 			break
 		}	
 	default:

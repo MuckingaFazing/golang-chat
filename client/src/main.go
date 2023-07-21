@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gordonklaus/portaudio"
 	"github.com/gorilla/websocket"
 
 	figure "github.com/common-nighthawk/go-figure"
@@ -31,6 +32,10 @@ var (
 	serverip         string
 	spyname          string
 	currentAgentChat string
+	// Audio settings
+	sampleRate  = float64(44100)
+	frameSize   = 1024
+	stopSignal  = make(chan struct{})
 )
 
 func main() {
@@ -61,8 +66,9 @@ func mainMenu(displayBanner bool) {
 		fmt.Print(light_blue, username+"(Alias - "+spyname+")\n"+reset)
 		util.PrintFlippedText("Please choose one of the following menu items:")
 		util.PrintFlippedText("1) Display Online Agents")
-		util.PrintFlippedText("2) Start secure chat")
-		util.PrintFlippedText("3) Change Username")
+		util.PrintFlippedText("2) Start secure text chat")
+		util.PrintFlippedText("3) Start secure voice chat")
+		util.PrintFlippedText("4) Change Username")
 
 	}
 
@@ -86,6 +92,8 @@ func handleMenu(num string) {
 		util.ClearScreen()
 		promptAgentName()
 	case "3":
+		handleVoiceChat()
+	case "4":
 		util.DeleteUsernameFile()
 		checkUsername()
 	default:
@@ -93,6 +101,76 @@ func handleMenu(num string) {
 		util.PrintFlippedText(red + "Invalid Option - try again" + green)
 		mainMenu(true)
 	}
+}
+
+func handleVoiceChat(){
+	util.PrintFlippedText("Enter the Agent name you want to chat with:")
+	reader := bufio.NewReader(os.Stdin)
+	currentAgentChat, _ = reader.ReadString('\n')
+	currentAgentChat = strings.TrimSuffix(currentAgentChat, "\n") // Trim newline character
+	currentAgentChat = strings.TrimSuffix(currentAgentChat, "\r") // Trim newline character
+	util.ClearScreen()
+	fmt.Print(green + "==========================You are chatting with " + blue)
+	fmt.Print(green + currentAgentChat)
+	fmt.Println(green + "================================")
+	fmt.Println(green + "q to quit")
+
+	// Start capturing and encoding audio
+	go captureAndEncodeAudio(conn)
+}
+
+func captureAndEncodeAudio(c *websocket.Conn) {
+	err := portaudio.Initialize()
+	if err != nil {
+		log.Fatal("Failed to initialize PortAudio:", err)
+	}
+	defer portaudio.Terminate()
+
+	// Open the default audio input stream
+	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, frameSize, func(in []int32) {
+		// Convert int32 samples to int16
+		samples := make([]int16, len(in))
+		for i, v := range in {
+			samples[i] = int16(v)
+		}
+
+		// Encode the audio samples
+		encodedData := encodeAudioSamples(samples)
+
+		// Send the encoded audio data over WebSocket
+		err := c.WriteMessage(websocket.BinaryMessage, encodedData)
+		if err != nil {
+			log.Println("Failed to send audio data over WebSocket:", err)
+			return
+		}
+
+		// Print the number of samples and data size (for demonstration purposes)
+		fmt.Printf("Sent %d audio samples (%d bytes)\n", len(samples), len(encodedData))
+	})
+	if err != nil {
+		log.Fatal("Failed to open audio stream:", err)
+	}
+	defer stream.Close()
+
+	// Start the audio stream
+	err = stream.Start()
+	if err != nil {
+		log.Fatal("Failed to start audio stream:", err)
+	}
+	defer stream.Stop()
+
+	// Wait for the stop signal
+	<-stopSignal
+}
+
+func encodeAudioSamples(samples []int16) []byte {
+	// Convert int16 samples to bytes
+	buffer := make([]byte, len(samples)*2)
+	for i, sample := range samples {
+		buffer[i*2] = byte(sample)
+		buffer[i*2+1] = byte(sample >> 8)
+	}
+	return buffer
 }
 
 func notifyConnect() {
